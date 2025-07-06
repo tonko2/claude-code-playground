@@ -162,5 +162,11 @@ ehthumbs_vista.db
 backend.log
 frontend.log
 
+# Database files
+/backend/data/
+*.db
+*.mv.db
+*.trace.db
+
 # Claude settings
 .claude
