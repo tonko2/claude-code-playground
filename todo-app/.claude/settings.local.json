@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npx create-react-app:*)",
+      "Bash(npm install:*)",
+      "Bash(./gradlew:*)",
+      "Bash(npm start)",
+      "Bash(gradle:*)",
+      "Bash(java:*)",
+      "Bash(brew install:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(kill:*)"
+    ],
+    "deny": []
+  }
+}
