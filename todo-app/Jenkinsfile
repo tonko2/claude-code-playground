@@ -1,0 +1,113 @@
+pipeline {
+    agent any
+    
+    tools {
+        jdk 'OpenJDK-17'
+        nodejs 'NodeJS-18'
+    }
+    
+    environment {
+        DOCKER_IMAGE_BACKEND = 'todo-app-backend'
+        DOCKER_IMAGE_FRONTEND = 'todo-app-frontend'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh './gradlew clean build'
+                }
+            }
+        }
+        
+        stage('Test Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh './gradlew test'
+                }
+            }
+            post {
+                always {
+                    publishTestResults(testResultsPattern: 'todo-app/backend/build/test-results/test/*.xml')
+                }
+            }
+        }
+        
+        stage('Build Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+        
+        stage('Test Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'npm test -- --coverage --watchAll=false'
+                }
+            }
+            post {
+                always {
+                    publishTestResults(testResultsPattern: 'todo-app/frontend/coverage/lcov-report/*.xml')
+                }
+            }
+        }
+        
+        stage('Build Docker Images') {
+            parallel {
+                stage('Backend Image') {
+                    steps {
+                        dir('todo-app/backend') {
+                            script {
+                                def backendImage = docker.build("${DOCKER_IMAGE_BACKEND}:${BUILD_NUMBER}")
+                                backendImage.tag("${DOCKER_IMAGE_BACKEND}:latest")
+                            }
+                        }
+                    }
+                }
+                stage('Frontend Image') {
+                    steps {
+                        dir('todo-app/frontend') {
+                            script {
+                                def frontendImage = docker.build("${DOCKER_IMAGE_FRONTEND}:${BUILD_NUMBER}")
+                                frontendImage.tag("${DOCKER_IMAGE_FRONTEND}:latest")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('todo-app') {
+                    sh 'docker-compose down'
+                    sh 'docker-compose up -d'
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
